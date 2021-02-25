@@ -8,6 +8,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"log"
 	"net"
 	"os"
@@ -816,6 +818,31 @@ func (s *synerexServerInfo) ForwardToGateway(ctx context.Context, gm *api.Gatewa
 	return r, nil
 }
 
+// GetAccessToken will check public key and requested token before return access token
+func (s *synerexServerInfo) GetAccessToken(_ context.Context, auth *api.OAuthRequest) (*api.OAuthResponse, error) {
+	publicKey := os.Getenv("SX_PUBLIC_KEY")
+	if len(auth.PublicKey) == 0 || auth.PublicKey != publicKey {
+		log.Println("public key not match", auth.PublicKey)
+		return nil, status.Errorf(codes.Unavailable, "public key not match")
+	}
+
+	err := validToken(auth)
+	if err != nil {
+		return nil, err
+	}
+
+	accessToken, err := generateAccessToken(auth.NodeId)
+	if err != nil {
+		return nil, err
+	}
+
+	rsp := &api.OAuthResponse{
+		AccessToken: accessToken,
+	}
+
+	return rsp, nil
+}
+
 func newServerInfo() *synerexServerInfo {
 	var ms synerexServerInfo
 	s := &ms
@@ -898,6 +925,10 @@ func unaryServerInterceptor(logger *log.Logger, s *synerexServerInfo) grpc.Unary
 			tgtId = msg.TargetId
 			args = idToNode(msg.SenderId) + "->" + idToNode(msg.TargetId)
 
+		}
+
+		if err := authorize(ctx, method); err != nil {
+			return nil, err
 		}
 
 		//		monitorapi.SendMes(&monitorapi.Mes{Message:method+":"+args, Args:""})
