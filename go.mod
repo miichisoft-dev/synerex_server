@@ -3,9 +3,9 @@ module synerex-server
 go 1.13
 
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang/protobuf v1.4.3 // indirect
+	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
 	github.com/shirou/gopsutil v3.20.11+incompatible // indirect
