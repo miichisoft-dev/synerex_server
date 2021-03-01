@@ -1,7 +1,18 @@
 # synerex_server
 Synerex Server
 
-# build with docker
+## configure
+
+copy file `config/private.test.key` to `config/private.key`　
+and `config/public.test.key` to `config/public.key`, 
+and editing content if you have a RSA key pair.
+
+```shell script
+cp config/private.test.key config/private.key
+cp config/public.test.key config/public.key
+```  
+
+## build with docker
 
 ```
 docker build ./ -t synerex_server
