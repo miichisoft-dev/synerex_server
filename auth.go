@@ -19,6 +19,11 @@ import (
 	"time"
 )
 
+const (
+	PublicKeyPath = "./config/public.key"
+	PrivateKeyPath = "./config/private.key"
+)
+
 // validToken validate hmac MD5 token
 func validToken(auth *api.OAuthRequest) error {
 	if len(auth.Token) == 0 {
@@ -41,8 +46,8 @@ func validToken(auth *api.OAuthRequest) error {
 }
 
 // getRsaPrivateKey read private key from file and parse to rsa private key
-func getRsaPrivateKey() (*rsa.PrivateKey, error) {
-	signBytes, err := ioutil.ReadFile("./config/private.key")
+func getRsaPrivateKey(path string) (*rsa.PrivateKey, error) {
+	signBytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Println("read file error", err)
 		return nil, err
@@ -59,7 +64,11 @@ func getRsaPrivateKey() (*rsa.PrivateKey, error) {
 
 // generateAccessToken generates and signs a new access token
 func generateAccessToken(nodeId string) (string, error) {
-	signKey, err := getRsaPrivateKey()
+	if len(nodeId) == 0 {
+		return "", status.Errorf(codes.PermissionDenied, "node id is required")
+	}
+
+	signKey, err := getRsaPrivateKey(PrivateKeyPath)
 	if err != nil {
 		return "", err
 	}
@@ -83,8 +92,8 @@ func generateAccessToken(nodeId string) (string, error) {
 }
 
 // verify verifies the access token string and return a user claim if the token is valid
-func verify(accessToken string) (string, error) {
-	verifyBytes, err := ioutil.ReadFile("./config/public.key")
+func verify(accessToken, publicKey string) (string, error) {
+	verifyBytes, err := ioutil.ReadFile(publicKey)
 	if err != nil {
 		log.Println("read file error", err)
 		return "", err
@@ -167,7 +176,7 @@ func authorize(ctx context.Context, method string) error {
 	}
 
 	accessToken := values[0][len(BearerSchema):]
-	role, err := verify(accessToken)
+	role, err := verify(accessToken, PublicKeyPath)
 	if err != nil {
 		return status.Errorf(codes.Unauthenticated, "access token is invalid: %v", err)
 	}
